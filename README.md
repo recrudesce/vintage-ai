@@ -1,11 +1,10 @@
 # vintage-gemini
 Telnet to Gemini bridge
 
-So, pretty simple.
-
-First set the GEMINI_API_KEY to be your Google AI Studio API key
-Run the server with `python3 ./start_server.py`
-Connect to it from whatever telnet client you want to use.
+- First set the GEMINI_API_KEY to be your Google AI Studio API key
+- Install the Gemini library `pip install google-generativeai`
+- Run the server with `python3 ./start_server.py`
+- Connect to it from whatever telnet client you want to use.
 
 Double enter sends the prompt.
 
