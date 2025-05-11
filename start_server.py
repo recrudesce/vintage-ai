@@ -2,10 +2,30 @@ import socket
 import threading
 import json
 import textwrap # Useful for wrapping long lines
-import google.generativeai as genai # Import the Google Generative AI library
 import re # Import regular expressions for more robust whitespace handling
 import os # Import the os module to access environment variables
 import time # Import time for the spinner animation delay
+import sys # Import sys to exit if no AI platform is available
+
+# --- Import libraries for other AI platforms ---
+try:
+    import google.generativeai as genai
+except ImportError:
+    print("Warning: Gemini library not found. Install with 'pip install google-generativeai' to enable Gemini support.")
+    OpenAI = None # Set to None if import fails
+
+try:
+    from openai import OpenAI
+except ImportError:
+    print("Warning: OpenAI library not found. Install with 'pip install openai' to enable OpenAI support.")
+    OpenAI = None # Set to None if import fails
+
+try:
+    from anthropic import Anthropic
+except ImportError:
+    print("Warning: Anthropic library not found. Install with 'pip install anthropic' to enable Anthropic support.")
+    Anthropic = None # Set to None if import fails
+
 
 # --- Configuration ---
 # Replace with the IP address of the computer running this script.
@@ -15,26 +35,103 @@ SERVER_HOST = '0.0.0.0'
 SERVER_PORT = 2323
 BUFFER_SIZE = 4096 # Buffer size for receiving data
 
-# Your Google AI API key (for Gemini)
-# IMPORTANT: This is read from the GEMINI_API_KEY environment variable.
-# Make sure to set this environment variable before running the script.
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+# Your API keys, read from environment variables.
+# Default to an empty string if the environment variable is not set.
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 
-# --- Initialize Gemini ---
-model = None # Initialize model to None
-if GEMINI_API_KEY is None:
-    print("!!! IMPORTANT: GEMINI_API_KEY environment variable not set.")
-    print("!!! Please set the GEMINI_API_KEY environment variable before running the script.")
+# Choose the AI platform to use: 'gemini', 'openai', or 'anthropic'.
+# Read from the AI_PLATFORM environment variable, default to 'gemini'.
+AI_PLATFORM = os.environ.get('AI_PLATFORM', 'gemini').lower()
+
+# Choose the specific AI model to use for the selected platform.
+# Read from the AI_MODEL environment variable. Defaults are provided below
+# if this variable is not set.
+AI_MODEL = os.environ.get('AI_MODEL')
+
+
+# --- Initialize AI Clients/Models ---
+gemini_model = None
+openai_client = None
+anthropic_client = None
+active_platform = None # To store the platform actually being used
+
+print(f"[*] Attempting to initialize AI platform: {AI_PLATFORM}")
+
+if AI_PLATFORM == 'gemini':
+    if GEMINI_API_KEY:
+        try:
+            # Use AI_MODEL if set, otherwise use a default Gemini model
+            gemini_model_name = AI_MODEL if AI_MODEL else 'gemini-2.0-flash'
+            genai.configure(api_key=GEMINI_API_KEY)
+            gemini_model = genai.GenerativeModel(gemini_model_name)
+            print(f"[*] Gemini model '{gemini_model_name}' configured successfully.")
+            active_platform = 'gemini'
+        except Exception as e:
+            print(f"!!! Failed to configure Google Generative AI: {e}")
+            print("!!! Please ensure your GEMINI_API_KEY is correct and you have network access.")
+    else:
+        print("!!! GEMINI_API_KEY environment variable not set.")
+        print("!!! Gemini platform not available.")
+
+elif AI_PLATFORM == 'openai':
+    if OpenAI and OPENAI_API_KEY:
+        try:
+            # Use AI_MODEL if set, otherwise use a default OpenAI model
+            openai_model_name = AI_MODEL if AI_MODEL else 'gpt-4o-mini' # Default OpenAI model
+            # Initialize OpenAI client
+            openai_client = OpenAI(api_key=OPENAI_API_KEY)
+            print(f"[*] OpenAI client configured successfully.")
+            active_platform = 'openai'
+            # Store the model name to use later
+            openai_client.model_name = openai_model_name
+            print(f"[*] Using OpenAI model: {openai_client.model_name}")
+        except Exception as e:
+            print(f"!!! Failed to configure OpenAI: {e}")
+            print("!!! Please ensure your OPENAI_API_KEY is correct and you have network access.")
+    else:
+        if not OpenAI:
+            print("!!! OpenAI library not installed.")
+        if not OPENAI_API_KEY:
+             print("!!! OPENAI_API_KEY environment variable not set.")
+        print("!!! OpenAI platform not available.")
+
+elif AI_PLATFORM == 'anthropic':
+    if Anthropic and ANTHROPIC_API_KEY:
+        try:
+            # Use AI_MODEL if set, otherwise use a default Anthropic model
+            anthropic_model_name = AI_MODEL if AI_MODEL else 'claude-3-5-sonnet-latest' # Default Anthropic model
+            # Initialize Anthropic client
+            anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+            print(f"[*] Anthropic client configured successfully.")
+            active_platform = 'anthropic'
+            # Store the model name to use later
+            anthropic_client.model_name = anthropic_model_name
+            print(f"[*] Using Anthropic model: {anthropic_client.model_name}")
+        except Exception as e:
+            print(f"!!! Failed to configure Anthropic: {e}")
+            print("!!! Please ensure your ANTHROPIC_API_KEY is correct and you have network access.")
+    else:
+        if not Anthropic:
+            print("!!! Anthropic library not installed.")
+        if not ANTHROPIC_API_KEY:
+            print("!!! ANTHROPIC_API_KEY environment variable not set.")
+        print("!!! Anthropic platform not available.")
+
 else:
-    try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        # Choose the specified model
-        model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
-        print(f"[*] Gemini model 'gemini-2.5-flash-preview-04-17' configured successfully.")
-    except Exception as e:
-        print(f"!!! Failed to configure Google Generative AI: {e}")
-        print("!!! Please ensure your API key is correct and you have network access.")
-        model = None # Ensure model is None if configuration fails
+    print(f"!!! Unknown AI_PLATFORM '{AI_PLATFORM}' specified.")
+    print("!!! Please set AI_PLATFORM to 'gemini', 'openai', or 'anthropic'.")
+
+
+# --- Check if any platform was successfully initialized ---
+if active_platform is None:
+    print("\n!!! No AI platform was successfully initialized.")
+    print("!!! Server cannot start without a configured AI platform.")
+    print("!!! Please check your AI_PLATFORM environment variable and corresponding API key.")
+    sys.exit(1) # Exit the script if no platform is ready
+
+print(f"[*] Using active AI platform: {active_platform.upper()}")
 
 # --- Spinner Animation ---
 spinner_chars = ['|', '/', '-', '\\']
@@ -75,7 +172,9 @@ def format_chunk(text_chunk):
         return ""
 
     # 1. Basic Markdown removal/conversion
-    formatted_chunk = text_chunk.replace('**', '').replace('*', '') # Remove bold/italic markers
+    # Use regex to remove bold/italic markers, being careful with whitespace
+    formatted_chunk = re.sub(r'\*\*(\S[^*]*\S)\*\*', r'\1', text_chunk) # Bold
+    formatted_chunk = re.sub(r'\*(\S[^*]*\S)\*', r'\1', formatted_chunk) # Italic
     formatted_chunk = formatted_chunk.replace('`', '') # Remove code block markers
     formatted_chunk = formatted_chunk.replace('>', '') # Remove blockquote markers
 
@@ -85,17 +184,22 @@ def format_chunk(text_chunk):
     # 3. Ensure consistent line endings (CRLF for Telnet) within the chunk
     # Replace any mix of newlines with CRLF
     formatted_chunk = formatted_chunk.replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\r\n')
-  
+
     return formatted_chunk
 
 # --- Client Handling ---
 def handle_client(client_socket):
-    """Handles a single client connection."""
+    """Handles a single client connection with chat history."""
     print(f"[*] Accepted connection from {client_socket.getpeername()}")
 
+    # Initialize chat history for this client
+    # Gemini uses a list of message objects with 'role' and 'parts'
+    # OpenAI and Anthropic use a list of message objects with 'role' and 'content'
+    chat_history = []
+
     try:
-        # Send a welcome message
-        welcome_message = "Vintage Mac Gemini Gateway\r\nType your prompt and press Enter twice to send:\r\n\r\n> "
+        # Send a welcome message indicating the active platform and model
+        welcome_message = f"Vintage Mac AI Gateway ({active_platform.upper()})\r\nModel: {AI_MODEL if AI_MODEL else 'Default'}\r\nType your prompt and press Enter twice to send:\r\n\r\n> "
         client_socket.send(welcome_message.encode('ascii'))
 
         # Accumulate input until the user signals to send (e.g., double Enter)
@@ -121,7 +225,7 @@ def handle_client(client_socket):
             if end_index_crlf != -1:
                 # Found CRLF CRLF
                 end_index = end_index_crlf
-                # Remove the "> " from the start of the actual prompt
+                # Extract prompt, removing the "> " from the start
                 prompt = input_buffer[:end_index].strip()
                 if prompt.startswith('> '):
                     prompt = prompt[2:]
@@ -129,7 +233,7 @@ def handle_client(client_socket):
             elif end_index_lf != -1:
                 # Found LF LF
                 end_index = end_index_lf
-                 # Remove the "> " from the start of the actual prompt
+                 # Extract prompt, removing the "> " from the start
                 prompt = input_buffer[:end_index].strip()
                 if prompt.startswith('> '):
                     prompt = prompt[2:]
@@ -151,40 +255,126 @@ def handle_client(client_socket):
                     spinner_thread.start()
                     # --- End Start Spinner Animation ---
 
-                    # --- Get and Stream Response from Gemini ---
+                    # --- Get and Stream Response from AI Platform ---
                     first_chunk_received = False
+                    full_response_text = "" # To accumulate the full response for history
+
                     try:
-                        # Use stream=True to get a streaming response
-                        streamed_response = model.generate_content(prompt, stream=True)
-                      
-                        for chunk in streamed_response:
-                            if not first_chunk_received:
-                                # --- Stop Spinner Animation on First Chunk ---
-                                stop_spinner.set() # Signal the spinner thread to stop
-                                spinner_thread.join() # Wait for the spinner thread to finish
-                                # The spin_animation function will send ' \b' to clear the last spinner char
-                                # --- End Stop Spinner Animation ---
-                                first_chunk_received = True
-                                # Send a newline after clearing the spinner to start the response on a new line
-                                client_socket.send("\r\n".encode('ascii'))
+                        if active_platform == 'gemini' and gemini_model:
+                            # Add user message to history for Gemini
+                            chat_history.append({'role': 'user', 'parts': [prompt]})
+                            # Use stream=True to get a streaming response from Gemini
+                            # Pass the entire chat history
+                            streamed_response = gemini_model.generate_content(chat_history, stream=True)
+                            for chunk in streamed_response:
+                                if not first_chunk_received:
+                                    # Stop spinner on first chunk
+                                    stop_spinner.set()
+                                    spinner_thread.join()
+                                    client_socket.send("\r\n".encode('ascii')) # New line after spinner
+                                    first_chunk_received = True
 
-                            # Get the text from the chunk
-                            chunk_text = chunk.text if hasattr(chunk, 'text') and chunk.text else ""
+                                chunk_text = chunk.text if hasattr(chunk, 'text') and chunk.text else ""
+                                if chunk_text:
+                                    full_response_text += chunk_text # Accumulate for history
+                                    formatted_chunk = format_chunk(chunk_text)
+                                    client_socket.send(formatted_chunk.encode('ascii', errors='ignore'))
 
-                            if chunk_text:
-                                # Format the chunk and send it
-                                formatted_chunk = format_chunk(chunk_text)
-                                client_socket.send(formatted_chunk.encode('ascii', errors='ignore'))
+                            # Add model response to history for Gemini
+                            if full_response_text:
+                                chat_history.append({'role': 'model', 'parts': [full_response_text]})
+
+
+                        elif active_platform == 'openai' and openai_client:
+                             # Add user message to history for OpenAI
+                            chat_history.append({"role": "user", "content": prompt})
+                             # Use stream=True for streaming response from OpenAI Chat Completions
+                            stream = openai_client.chat.completions.create(
+                                model=openai_client.model_name, # Use the configured OpenAI model name
+                                messages=chat_history, # Pass the entire chat history
+                                stream=True,
+                            )
+                            for chunk in stream:
+                                if not first_chunk_received:
+                                    # Stop spinner on first chunk
+                                    stop_spinner.set()
+                                    spinner_thread.join()
+                                    client_socket.send("\r\n".encode('ascii')) # New line after spinner
+                                    first_chunk_received = True
+
+                                # OpenAI streaming chunks have text in delta.content
+                                chunk_text = chunk.choices[0].delta.content if chunk.choices[0].delta and chunk.choices[0].delta.content else ""
+                                if chunk_text:
+                                    full_response_text += chunk_text # Accumulate for history
+                                    formatted_chunk = format_chunk(chunk_text)
+                                    client_socket.send(formatted_chunk.encode('ascii', errors='ignore'))
+
+                            # Add assistant response to history for OpenAI
+                            if full_response_text:
+                                chat_history.append({"role": "assistant", "content": full_response_text})
+
+
+                        elif active_platform == 'anthropic' and anthropic_client:
+                            # Add user message to history for Anthropic
+                            # Anthropic messages API expects alternating user/assistant roles.
+                            # We'll build the messages list for the API call.
+                            anthropic_messages = []
+                            for msg in chat_history:
+                                if msg['role'] == 'user':
+                                     anthropic_messages.append({"role": "user", "content": msg['content']})
+                                elif msg['role'] == 'assistant':
+                                     anthropic_messages.append({"role": "assistant", "content": msg['content']})
+
+                            # Add the current user prompt
+                            anthropic_messages.append({"role": "user", "content": prompt})
+
+                            # Use stream=True for streaming response from Anthropic Messages API
+                            stream = anthropic_client.messages.create(
+                                model=anthropic_client.model_name, # Use the configured Anthropic model name
+                                max_tokens=4096, # Max tokens to sample (can also make this configurable)
+                                messages=anthropic_messages, # Pass the messages list
+                                stream=True,
+                            )
+                            for event in stream:
+                                if event.type == "content_block_delta":
+                                    if not first_chunk_received:
+                                        # Stop spinner on first chunk
+                                        stop_spinner.set()
+                                        spinner_thread.join()
+                                        client_socket.send("\r\n".encode('ascii')) # New line after spinner
+                                        first_chunk_received = True
+
+                                    # Anthropic streaming events have text in delta.text
+                                    chunk_text = event.delta.text if event.delta and event.delta.text else ""
+                                    if chunk_text:
+                                        full_response_text += chunk_text # Accumulate for history
+                                        formatted_chunk = format_chunk(chunk_text)
+                                        client_socket.send(formatted_chunk.encode('ascii', errors='ignore'))
+                                elif event.type == "message_stop":
+                                    # Stream finished
+                                    pass # No extra action needed, loop will end
+
+                            # Add assistant response to history for Anthropic (using the same structure as OpenAI for simplicity)
+                            if full_response_text:
+                                chat_history.append({"role": "user", "content": prompt}) # Add the user prompt to internal history
+                                chat_history.append({"role": "assistant", "content": full_response_text}) # Add the assistant response
+
+
+                        else:
+                             # This case should ideally not be reached if active_platform is set correctly
+                             # but included as a fallback.
+                             client_socket.send("\r\nError: No active AI platform configured.\r\n".encode('ascii', errors='ignore'))
+
 
                     except Exception as e:
                          # If an error occurs during streaming, stop spinner if it's still running
                          if not first_chunk_received:
                              stop_spinner.set()
                              spinner_thread.join()
-                             client_socket.send(f"\r\nGemini API Streaming Error: {e}\r\n".encode('ascii', errors='ignore'))
+                             client_socket.send(f"\r\nAI API Streaming Error ({active_platform.upper()}): {e}\r\n".encode('ascii', errors='ignore'))
                          else:
                              # If error after streaming started, just print it to server console
-                             print(f"[*] Gemini API Streaming Error during stream: {e}")
+                             print(f"[*] AI API Streaming Error during stream ({active_platform.upper()}): {e}")
 
 
                     # --- Ensure spinner is stopped if no chunks were received (e.g., API error) ---
@@ -196,7 +386,7 @@ def handle_client(client_socket):
 
                     # Send the separator line and the next prompt
                     client_socket.send("\r\n-----\r\n".encode('ascii')) # Added separator
-                    client_socket.send("Type your next prompt and press Enter twice:\r\n\r\n> ".encode('ascii')) # Added "> " here
+                    client_socket.send(f"Type your next prompt and press Enter twice:\r\n\r\n> ".encode('ascii')) # Added "> " here
                 else:
                     # If prompt is empty after double enter, just prompt again
                     client_socket.send("\r\nType your prompt and press Enter twice:\r\n\r\n> ".encode('ascii')) # Added "> " here
@@ -238,8 +428,6 @@ def start_server():
 
 # --- Entry Point ---
 if __name__ == "__main__":
-    # Check if the model was initialized successfully before starting the server
-    if model is not None:
-        start_server()
-    else:
-        print("Server not started due to Gemini API configuration error (API key not set or configuration failed).")
+    # The check for active_platform and sys.exit(1) is done during initialization
+    # If we reach here, an active_platform is set.
+    start_server()
