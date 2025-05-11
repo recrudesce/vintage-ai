@@ -9,10 +9,11 @@ import sys # Import sys to exit if no AI platform is available
 
 # --- Import libraries for AI platforms ---
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
 except ImportError:
     print("Warning: Google Generative AI library is not found. Install with 'pip install google-generativeai' to enable Gemini support.")
-    genai = None
+    Gemini = None
 
 try:
     from openai import OpenAI
@@ -26,7 +27,7 @@ except ImportError:
     print("Warning: Anthropic library not found. Install with 'pip install anthropic' to enable Anthropic support.")
     Anthropic = None # Set to None if import fails
 
-if (not genai and not OpenAI and not Anthropic):
+if (not Gemini and not OpenAI and not Anthropic):
     print("Error: none of supported AI providers are installed. See warnings above.")
     exit(1)
 
@@ -69,12 +70,11 @@ active_platform = None # To store the platform actually being used
 print(f"[*] Attempting to initialize AI platform: {AI_PLATFORM}")
 
 if AI_PLATFORM == 'gemini':
-    if genai and GEMINI_API_KEY:
+    if Gemini and GEMINI_API_KEY:
         try:
             # Use AI_MODEL if set, otherwise use a default Gemini model
             gemini_model_name = AI_MODEL if AI_MODEL else 'gemini-2.0-flash'
-            genai.configure(api_key=GEMINI_API_KEY)
-            gemini_model = genai.GenerativeModel(gemini_model_name)
+            client = genai.Client(api_key=GEMINI_API_KEY)
             print(f"[*] Gemini model '{gemini_model_name}' configured successfully.")
             active_platform = 'gemini'
         except Exception as e:
@@ -280,10 +280,8 @@ def handle_client(client_socket):
                         if active_platform == 'gemini' and gemini_model:
                             # Add user message to history for Gemini
                             chat_history.append({'role': 'user', 'parts': [prompt]})
-                            # Use stream=True to get a streaming response from Gemini
                             # Pass the entire chat history
-                            streamed_response = gemini_model.generate_content(chat_history, stream=True)
-                            for chunk in streamed_response:
+                            for chunk in client.models.generate_content_stream(model=gemini_model, contents=chat_history):
                                 if not first_chunk_received:
                                     # Stop spinner on first chunk
                                     stop_spinner.set()
