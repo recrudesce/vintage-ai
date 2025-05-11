@@ -6,7 +6,7 @@ Telnet to AI bridge
 ## Running Locally
 Ensure that any of these AI providers are installed:
 
-- `google-generativeai` for Google Gemini models
+- `google-genai` for Google Gemini models
 - `openai` for OpenAI models
 - `anthropic` for Anthropic Claude models
 
