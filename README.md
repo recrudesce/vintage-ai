@@ -1,5 +1,6 @@
 # vintage-ai
 Telnet to AI bridge
+![vintage-ai](https://github.com/user-attachments/assets/2947a16a-ef78-4bdb-9b89-c363086c0264)
 
 ## Running Locally
 Set the `AI_PLATFORM` environment variable to either `gemini`, `openai`, or `anthropic`.  It will default to `gemini` if not set.
@@ -32,3 +33,4 @@ Connect to it on port 2323 from your telnet/bbs client.
 Double enter sends what you've typed.  This allows you to send multi-line prompts.
 
 See here for a video of it working: https://bsky.app/profile/did:plc:xt3aino56gwrypmn2ovfmg3a/post/3lott7mkcwc2f
+
