@@ -18,7 +18,7 @@ If this is not set, Gemini will default to `gemini-2.0-flash`, OpenAI will defau
 
 ### Gemini
 - First set the `GEMINI_API_KEY` environment variable to be your Google AI Studio API key
-- Install the Gemini library `pip install google-generativeai`
+- Install the Gemini library `pip install google-genai`
 
 ### OpenAI Compatible API's (OpenAI, Ollama, vLLM etc)
 - First set the `OPENAI_API_KEY` environment variable to be your OpenAI/Ollama/whatever API key
