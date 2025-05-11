@@ -1,0 +1,37 @@
+# Use a specific version of the Docker Compose file format
+version: '3.8'
+
+# Define the services (containers) for your application
+services:
+  ai-gateway:
+    # Build the Docker image using the Dockerfile in the current directory (.)
+    build: .
+    # Map the host machine's port 2323 to the container's port 2323
+    ports:
+      - "2323:2323"
+    # Define environment variables to be passed into the container
+    # You can replace the placeholder values with your actual API keys
+    # Alternatively, you can create a .env file in the same directory as
+    # the docker-compose.yml file and list your variables there (e.g.,
+    # GEMINI_API_KEY=your_gemini_key, AI_PLATFORM=gemini)
+    environment:
+      # Example: Set the AI platform to use (gemini, openai, or anthropic)
+      # Uncomment and set the desired platform
+      # AI_PLATFORM: "gemini"
+      # AI_PLATFORM: "openai"
+      # AI_PLATFORM: "anthropic"
+
+      # Example: Set the specific AI model to use (optional, uses default if not set)
+      # Uncomment and set the desired model name
+      # AI_MODEL: "gemini-2.0-flash"
+      # AI_MODEL: "gpt-4o-mini"
+      # AI_MODEL: "claude-3-5-sonnet-latest"
+
+      # Your API Keys - Replace with your actual keys or use a .env file
+      # Uncomment and set the keys for the platforms you are using
+      # GEMINI_API_KEY: "YOUR_GEMINI_API_KEY"
+      # OPENAI_API_KEY: "YOUR_OPENAI_API_KEY"
+      # ANTHROPIC_API_KEY: "YOUR_ANTHROPIC_API_KEY"
+
+    # Restart the container if it exits unexpectedly
+    restart: unless-stopped
