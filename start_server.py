@@ -69,9 +69,7 @@ active_platform = None # To store the platform actually being used
 print(f"[*] Attempting to initialize AI platform: {AI_PLATFORM}")
 
 if AI_PLATFORM == 'gemini':
-    print("gemini")
     if genai and GEMINI_API_KEY:
-        print("geminiiiiii")
         try:
             # Use AI_MODEL if set, otherwise use a default Gemini model
             gemini_model_name = AI_MODEL if AI_MODEL else 'gemini-2.0-flash'
