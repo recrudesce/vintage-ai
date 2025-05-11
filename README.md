@@ -1,5 +1,6 @@
 # vintage-ai
 Telnet to AI bridge
+
 ![vintage-ai](https://github.com/user-attachments/assets/2947a16a-ef78-4bdb-9b89-c363086c0264)
 
 ## Running Locally
