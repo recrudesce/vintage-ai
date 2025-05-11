@@ -2,18 +2,13 @@ import socket
 import threading
 import json
 import textwrap # Useful for wrapping long lines
+import google.generativeai as genai # Import the Google Generative AI library
 import re # Import regular expressions for more robust whitespace handling
 import os # Import the os module to access environment variables
 import time # Import time for the spinner animation delay
 import sys # Import sys to exit if no AI platform is available
 
 # --- Import libraries for other AI platforms ---
-try:
-    import google.generativeai as genai
-except ImportError:
-    print("Warning: Gemini library not found. Install with 'pip install google-generativeai' to enable Gemini support.")
-    OpenAI = None # Set to None if import fails
-
 try:
     from openai import OpenAI
 except ImportError:
@@ -36,10 +31,16 @@ SERVER_PORT = 2323
 BUFFER_SIZE = 4096 # Buffer size for receiving data
 
 # Your API keys, read from environment variables.
+# IMPORTANT: Set these environment variables before running the script.
 # Default to an empty string if the environment variable is not set.
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+
+# Optional: Set a custom base URL for the OpenAI API (useful for proxies or local models)
+# Read from the OPENAI_BASE_URL environment variable.
+OPENAI_BASE_URL = os.environ.get('OPENAI_BASE_URL')
+
 
 # Choose the AI platform to use: 'gemini', 'openai', or 'anthropic'.
 # Read from the AI_PLATFORM environment variable, default to 'gemini'.
@@ -81,8 +82,14 @@ elif AI_PLATFORM == 'openai':
             # Use AI_MODEL if set, otherwise use a default OpenAI model
             openai_model_name = AI_MODEL if AI_MODEL else 'gpt-4o-mini' # Default OpenAI model
             # Initialize OpenAI client
-            openai_client = OpenAI(api_key=OPENAI_API_KEY)
-            print(f"[*] OpenAI client configured successfully.")
+            # Pass the base_url if OPENAI_BASE_URL is set
+            if OPENAI_BASE_URL:
+                openai_client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
+                print(f"[*] OpenAI client configured with custom base URL: {OPENAI_BASE_URL}")
+            else:
+                openai_client = OpenAI(api_key=OPENAI_API_KEY)
+                print(f"[*] OpenAI client configured successfully (using default base URL).")
+
             active_platform = 'openai'
             # Store the model name to use later
             openai_client.model_name = openai_model_name
@@ -90,6 +97,8 @@ elif AI_PLATFORM == 'openai':
         except Exception as e:
             print(f"!!! Failed to configure OpenAI: {e}")
             print("!!! Please ensure your OPENAI_API_KEY is correct and you have network access.")
+            if OPENAI_BASE_URL:
+                 print(f"!!! Also check if the custom base URL '{OPENAI_BASE_URL}' is correct and accessible.")
     else:
         if not OpenAI:
             print("!!! OpenAI library not installed.")
