@@ -2,13 +2,18 @@ import socket
 import threading
 import json
 import textwrap # Useful for wrapping long lines
-import google.generativeai as genai # Import the Google Generative AI library
 import re # Import regular expressions for more robust whitespace handling
 import os # Import the os module to access environment variables
 import time # Import time for the spinner animation delay
 import sys # Import sys to exit if no AI platform is available
 
-# --- Import libraries for other AI platforms ---
+# --- Import libraries for AI platforms ---
+try:
+    import google.generativeai as genai
+except ImportError:
+    print("Warning: Google Generative AI library is not found. Install with 'pip install google-generativeai' to enable Gemini support.")
+    genai = None
+
 try:
     from openai import OpenAI
 except ImportError:
@@ -21,6 +26,9 @@ except ImportError:
     print("Warning: Anthropic library not found. Install with 'pip install anthropic' to enable Anthropic support.")
     Anthropic = None # Set to None if import fails
 
+if (not genai and not OpenAI and not Anthropic):
+    print("Error: none of supported AI providers are installed. See warnings above.")
+    exit(1)
 
 # --- Configuration ---
 # Replace with the IP address of the computer running this script.
@@ -61,7 +69,7 @@ active_platform = None # To store the platform actually being used
 print(f"[*] Attempting to initialize AI platform: {AI_PLATFORM}")
 
 if AI_PLATFORM == 'gemini':
-    if GEMINI_API_KEY:
+    if genai and GEMINI_API_KEY:
         try:
             # Use AI_MODEL if set, otherwise use a default Gemini model
             gemini_model_name = AI_MODEL if AI_MODEL else 'gemini-2.0-flash'
