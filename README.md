@@ -4,6 +4,12 @@ Telnet to AI bridge
 ![vintage-ai](https://github.com/user-attachments/assets/2947a16a-ef78-4bdb-9b89-c363086c0264)
 
 ## Running Locally
+Ensure that any of these AI providers are installed:
+
+- `google-generativeai` for Google Gemini models
+- `openai` for OpenAI models
+- `anthropic` for Anthropic Claude models
+
 Set the `AI_PLATFORM` environment variable to either `gemini`, `openai`, or `anthropic`.  It will default to `gemini` if not set.
 
 Set the `AI_MODEL` environment variable to be the model name you want to use.  e.g `o4-mini` or `gemini-2.0-flash`. 
