@@ -33,5 +33,9 @@ services:
       # OPENAI_API_KEY: "YOUR_OPENAI_API_KEY"
       # ANTHROPIC_API_KEY: "YOUR_ANTHROPIC_API_KEY"
 
+      # Optional: Set a custom base URL for the OpenAI API
+      # Uncomment and set the URL if you are using OpenAI with a custom endpoint
+      # OPENAI_BASE_URL: "http://localhost:1234/v1" # Example for a local model server
+
     # Restart the container if it exits unexpectedly
     restart: unless-stopped
