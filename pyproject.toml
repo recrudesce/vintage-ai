@@ -1,0 +1,7 @@
+[project]
+name = "vintage-ai"
+version = "0.1.0"
+description = "Allows accessing AI models through Telnet"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
