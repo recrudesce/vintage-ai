@@ -13,7 +13,6 @@ try:
     from google.genai import types
 except ImportError:
     print("Warning: Google Generative AI library is not found. Install with 'pip install google-generativeai' to enable Gemini support.")
-    Gemini = None
 
 try:
     from openai import OpenAI
@@ -27,7 +26,7 @@ except ImportError:
     print("Warning: Anthropic library not found. Install with 'pip install anthropic' to enable Anthropic support.")
     Anthropic = None # Set to None if import fails
 
-if (not Gemini and not OpenAI and not Anthropic):
+if (not genai and not OpenAI and not Anthropic):
     print("Error: none of supported AI providers are installed. See warnings above.")
     exit(1)
 
@@ -70,11 +69,16 @@ active_platform = None # To store the platform actually being used
 print(f"[*] Attempting to initialize AI platform: {AI_PLATFORM}")
 
 if AI_PLATFORM == 'gemini':
-    if Gemini and GEMINI_API_KEY:
+    print("gemini")
+    if genai and GEMINI_API_KEY:
+        print("geminiiiiii")
         try:
             # Use AI_MODEL if set, otherwise use a default Gemini model
             gemini_model_name = AI_MODEL if AI_MODEL else 'gemini-2.0-flash'
             client = genai.Client(api_key=GEMINI_API_KEY)
+            chat = client.chats.create(model=gemini_model_name)
+            active_platform = 'gemini'
+        except Exception as e:
             print(f"[*] Gemini model '{gemini_model_name}' configured successfully.")
             active_platform = 'gemini'
         except Exception as e:
@@ -216,7 +220,16 @@ def handle_client(client_socket):
 
     try:
         # Send a welcome message indicating the active platform and model
-        welcome_message = f"Vintage Mac AI Gateway ({active_platform.upper()})\r\nModel: {AI_MODEL if AI_MODEL else 'Default'}\r\nType your prompt and press Enter twice to send:\r\n\r\n> "
+        model_display_name = AI_MODEL if AI_MODEL else 'Default'
+        if active_platform == 'gemini' and not AI_MODEL:
+            model_display_name = 'gemini-2.0-flash' # Show updated default
+        elif active_platform == 'openai' and not AI_MODEL:
+            model_display_name = 'gpt-4o-mini'
+        elif active_platform == 'anthropic' and not AI_MODEL:
+            model_display_name = 'claude-3-5-sonnet-latest'
+
+
+        welcome_message = f"Vintage AI Gateway ({active_platform.upper()})\r\nModel: {model_display_name}\r\nType your prompt and press Enter twice to send:\r\n\r\n> "
         client_socket.send(welcome_message.encode('ascii'))
 
         # Accumulate input until the user signals to send (e.g., double Enter)
@@ -277,11 +290,10 @@ def handle_client(client_socket):
                     full_response_text = "" # To accumulate the full response for history
 
                     try:
-                        if active_platform == 'gemini' and gemini_model:
+                        if active_platform == 'gemini' and gemini_model_name:
                             # Add user message to history for Gemini
-                            chat_history.append({'role': 'user', 'parts': [prompt]})
                             # Pass the entire chat history
-                            for chunk in client.models.generate_content_stream(model=gemini_model, contents=chat_history):
+                            for chunk in chat.send_message_stream(prompt):
                                 if not first_chunk_received:
                                     # Stop spinner on first chunk
                                     stop_spinner.set()
