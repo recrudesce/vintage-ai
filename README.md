@@ -4,7 +4,8 @@ Telnet to AI bridge
 ## Running Locally
 Set the `AI_PLATFORM` environment variable to either `gemini`, `openai`, or `anthropic`.  It will default to `gemini` if not set.
 
-Set the `AI_MODEL` environment variable to be the model name you want to use.  e.g `o4-mini` or `gemini-2.0-flash`
+Set the `AI_MODEL` environment variable to be the model name you want to use.  e.g `o4-mini` or `gemini-2.0-flash`. 
+
 If this is not set, Gemini will default to `gemini-2.0-flash`, OpenAI will default to `gpt-4o-mini`, and Anthropic will default to `claude-3-5-sonnet-latest`
 
 ### Gemini
