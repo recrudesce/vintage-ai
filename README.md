@@ -11,8 +11,9 @@ If this is not set, Gemini will default to `gemini-2.0-flash`, OpenAI will defau
 - First set the GEMINI_API_KEY environment variable to be your Google AI Studio API key
 - Install the Gemini library `pip install google-generativeai`
 
-### OpenAI
-- First set the OPENAI_API_KEY environment variable to be your OpenAI API key
+### OpenAI Compatible API's (OpenAI, Ollama, vLLM etc)
+- First set the OPENAI_API_KEY environment variable to be your OpenAI/Ollama/whatever API key
+- IF you want to use Ollama/vLLM/any other OpenAI compatible API, set the `OPENAI_BASE_URL` environment variable to the relevant base URL for your provider. You WILL need to set the `AI_MODEL` environment variable if you do this, else it can't default to an OpenAI model.
 - Install the OpenAI library `pip install openai`
 
 ### Anthropic Claude
