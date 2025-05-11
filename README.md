@@ -9,12 +9,10 @@ If this is not set, Gemini will default to `gemini-2.0-flash`, OpenAI will defau
 ## Gemini
 - First set the GEMINI_API_KEY environment variable to be your Google AI Studio API key
 - Install the Gemini library `pip install google-generativeai`
-- Run the server with `python3 ./start_server.py`
 
 ## OpenAI
 - First set the OPENAI_API_KEY environment variable to be your OpenAI API key
 - Install the OpenAI library `pip install openai`
-- Run the server with `python3 ./start_server.py`
 
 ## Anthropic Claude
 - First set the ANTHROPIC_API_KEY environment variable to be your OpenAI API key
