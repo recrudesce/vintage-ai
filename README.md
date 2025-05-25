@@ -26,15 +26,33 @@ If this is not set, Gemini will default to `gemini-2.0-flash`, OpenAI will defau
 - Install the OpenAI library `pip install openai`
 
 ### Anthropic Claude
-- First set the `ANTHROPIC_API_KEY` environment variable to be your OpenAI API key
+- First set the `ANTHROPIC_API_KEY` environment variable to be your Anthropic API key
 - Install the Anthropic library `pip install anthropic`
 
 Run the server with `python3 ./start_server.py` then connect to it from whatever telnet client you want to use (it runs on port 2323).
+
+## Performance & Memory Management
+
+The server has been optimized for efficiency and includes:
+
+- **Memory management**: Chat history is automatically limited to 50 messages per connection to prevent memory leaks
+- **Improved threading**: Proper cleanup of spinner animation threads with timeout handling
+- **Optimized text processing**: Pre-compiled regex patterns for better performance
+- **Unified streaming**: Single codebase handles all AI platforms efficiently
+- **Clean shutdown**: Daemon threads allow graceful server termination
 
 ## Docker
 This can be run via docker, if you so wanted.  Edit the `docker-compose.yml` as per the instructions within, setting the relevant API keys and AI platform to use etc.
 Then run `docker compose up -d` to start the container.
 Connect to it on port 2323 from your telnet/bbs client.
+
+## Commands
+
+The server now supports runtime commands:
+
+- `/model <name>` - Change AI model during your session (e.g. `/model gpt-4o`, `/model claude-3-5-sonnet-20241022`)
+- `/status` - Show current platform, model, and chat history count
+- `/help` - Display available commands
 
 ## Other Things to Know
 Double enter sends what you've typed.  This allows you to send multi-line prompts.
