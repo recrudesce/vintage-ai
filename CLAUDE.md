@@ -46,19 +46,29 @@ export AI_MODEL=claude-3-5-sonnet-latest  # optional, default is claude-3-5-sonn
 
 ## Architecture
 
-The main application is a single-file server (`start_server.py`) that:
+The main application is a single-file server (`start_server.py`) built with a class-based architecture:
 
+**Core Classes:**
+- `AIClientManager`: Handles AI platform initialization, configuration, and model switching
+- `SpinnerManager`: Manages spinner animation threads with proper cleanup
+- `handle_client()`: Per-connection handler with chat history and command processing
+- `stream_ai_response()`: Unified streaming function for all AI platforms
+
+**Key Features:**
 1. **Platform Detection**: Dynamically imports and configures AI platform libraries based on `AI_PLATFORM` environment variable
 2. **Socket Server**: Listens on port 2323 for Telnet connections
-3. **Threading**: Handles each client connection in a separate thread with persistent chat history
+3. **Threading**: Handles each client connection in a separate daemon thread with persistent chat history
 4. **Streaming**: Implements real-time streaming responses with spinner animation
 5. **Protocol**: Uses double Enter (`\r\n\r\n` or `\n\n`) as the send signal for multi-line prompts
+6. **Runtime Commands**: Supports `/model`, `/status`, `/help` commands during sessions
+7. **Memory Management**: Chat history limited to 50 messages per connection to prevent memory leaks
 
-Key components:
-- Client connection handling with chat history per session
-- Streaming response processing with text formatting for vintage terminals
-- Spinner animation during AI processing
-- Error handling and graceful platform fallbacks
+**Performance Optimizations:**
+- Pre-compiled regex patterns for text formatting
+- StringIO for efficient buffer management
+- Unified streaming logic eliminates code duplication
+- Proper thread cleanup with timeouts
+- Type hints for better code maintainability
 
 ## Dependencies
 
@@ -71,7 +81,25 @@ pip install anthropic       # For Anthropic Claude
 
 ## Connection Protocol
 
-Clients connect via Telnet on port 2323. The protocol expects:
+Clients connect via Telnet on port 2323. The protocol supports:
+
+**Input:**
 - Multi-line prompts ending with double Enter
+- Runtime commands starting with `/` (e.g., `/model gpt-4o`, `/status`, `/help`)
+
+**Output:**
 - Text responses formatted for vintage terminals (CRLF line endings)
-- Chat history maintained per connection
+- Spinner animation during AI processing
+- Command responses and status information
+
+**Session Management:**
+- Chat history maintained per connection (max 50 messages)
+- Model switching during runtime with `/model` command
+- Graceful handling of connection cleanup
+
+## Important Notes for Development
+
+- **Gemini Chat History**: The new Google Gen AI SDK manages history server-side but doesn't expose it client-side, so we track messages locally for status reporting
+- **Memory Limits**: Chat history is capped at 50 messages per connection via `limit_chat_history()` function
+- **Threading**: All client threads are daemon threads for clean shutdown
+- **Error Handling**: All platforms have consistent error handling with fallback behavior
